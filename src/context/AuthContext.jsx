@@ -1,78 +1,51 @@
 import React, { createContext, useState, useEffect } from 'react';
-import api from '../api/axios';
+import { supabase } from '../lib/supabase';
 
 export const AuthContext = createContext();
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
-// Keys used for persistent session storage
-const KEY_TOKEN   = 'pnl_user_token';
-const KEY_USER    = 'pnl_user_data';
-const KEY_EXPIRY  = 'pnl_session_expiry';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const savedToken  = localStorage.getItem(KEY_TOKEN);
-      const savedUser   = localStorage.getItem(KEY_USER);
-      const expiryTime  = localStorage.getItem(KEY_EXPIRY);
-
-      if (savedToken && savedUser && expiryTime) {
-        // ✅ Valid 7-day session
-        if (Date.now() < parseInt(expiryTime, 10)) {
-          setUser(JSON.parse(savedUser));
-          // Silently re-validate token in the background
-          api.get('/auth/me').catch(() => {
-            // Token rejected by server → clear and force re-login
-            _clearSession();
-            setUser(null);
-          });
-        } else {
-          // ❌ Session expired — wipe everything
-          _clearSession();
-        }
-      }
-
-      // Small delay for a smooth loading screen transition
-      setTimeout(() => setLoading(false), 800);
+    // Check active session on initial load
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      setLoading(false);
     };
 
-    checkAuth();
+    initializeAuth();
+
+    // Listen to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription?.unsubscribe();
   }, []);
 
-  /** Persist a new authenticated session for 7 days */
-  const _persistSession = (token, userData) => {
-    const expiry = Date.now() + SEVEN_DAYS_MS;
-    localStorage.setItem(KEY_TOKEN,  token);
-    localStorage.setItem(KEY_USER,   JSON.stringify(userData));
-    localStorage.setItem(KEY_EXPIRY, expiry.toString());
-  };
-
-  /** Remove all session keys from localStorage */
-  const _clearSession = () => {
-    localStorage.removeItem(KEY_TOKEN);
-    localStorage.removeItem(KEY_USER);
-    localStorage.removeItem(KEY_EXPIRY);
-  };
-
   const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
-    _persistSession(res.data.token, res.data.user);
-    setUser(res.data.user);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
   };
 
   const register = async (name, email, password) => {
-    const res = await api.post('/auth/register', { name, email, password });
-    _persistSession(res.data.token, res.data.user);
-    setUser(res.data.user);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name }
+      }
+    });
+    if (error) throw error;
+    return data;
   };
 
-  const logout = () => {
-    _clearSession();
-    setUser(null);
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   };
 
   return (

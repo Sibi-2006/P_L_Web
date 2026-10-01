@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext, useCallback, useMemo } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import api from '../api/axios';
+import { supabase } from '../lib/supabase';
 import TradeFormModal from '../components/TradeFormModal';
 import TradeGrid from '../components/TradeGrid';
 import PnLCalendar from '../components/PnLCalendar';
@@ -22,8 +22,18 @@ const Dashboard = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const tradesRes = await api.get('/trades');
-      setTrades(tradesRes.data);
+      const { data: tradesRes, error } = await supabase
+        .from('trades')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setTrades(tradesRes.map(t => ({
+        ...t,
+        imageUrl: t.image_url,
+        entryTime: t.entry_time,
+        exitTime: t.exit_time,
+        type: t.trade_type?.toLowerCase()
+      })));
     } catch (err) {
       console.error('Failed to fetch data', err);
     }
@@ -81,8 +91,9 @@ const Dashboard = () => {
 
   const handleClearData = async () => {
     try {
-      for (const t of filteredTrades) {
-        await api.delete(`/trades/${t._id}`);
+      const idsToDelete = filteredTrades.map(t => t.id || t._id);
+      if (idsToDelete.length > 0) {
+        await supabase.from('trades').delete().in('id', idsToDelete);
       }
       setShowClearModal(false);
       fetchData();
@@ -94,7 +105,7 @@ const Dashboard = () => {
   const handleDeleteTrade = async (id) => {
     if (!window.confirm('DANGER: Permanently delete this trade?')) return;
     try {
-      await api.delete(`/trades/${id}`);
+      await supabase.from('trades').delete().eq('id', id);
       fetchData();
     } catch (err) {
       console.error(err);

@@ -1,5 +1,5 @@
 import React from 'react';
-import api from '../api/axios';
+import { supabase } from '../lib/supabase';
 
 const TradeList = ({ trades, currencyRate, useInr, onTradeDeleted }) => {
   const formatMoney = (amount) => {
@@ -12,7 +12,7 @@ const TradeList = ({ trades, currencyRate, useInr, onTradeDeleted }) => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this trade?')) return;
     try {
-      await api.delete(`/trades/${id}`);
+      await supabase.from('trades').delete().eq('id', id);
       onTradeDeleted();
     } catch (err) {
       console.error(err);
@@ -35,15 +35,15 @@ const TradeList = ({ trades, currencyRate, useInr, onTradeDeleted }) => {
           </thead>
           <tbody>
             {trades.map(trade => (
-              <tr key={trade._id} className="border-b border-hud-border/50 hover:bg-hud-bg/50">
+              <tr key={trade.id || trade._id} className="border-b border-hud-border/50 hover:bg-hud-bg/50">
                 <td className="py-3">{new Date(trade.date).toLocaleDateString()}</td>
-                <td className={`py-3 ${trade.type === 'profit' ? 'text-brand-green' : 'text-brand-red'}`}>
-                  {trade.type.toUpperCase()}
+                <td className={`py-3 ${trade.trade_type?.toLowerCase() === 'profit' || trade.type?.toLowerCase() === 'profit' ? 'text-brand-green' : 'text-brand-red'}`}>
+                  {(trade.trade_type || trade.type || '').toUpperCase()}
                 </td>
                 <td className="py-3">{formatMoney(trade.amount)}</td>
                 <td className="py-3 text-hud-muted truncate max-w-xs">{trade.journal || '-'}</td>
                 <td className="py-3 text-right">
-                  <button onClick={() => handleDelete(trade._id)} className="text-brand-red hover:text-white">
+                  <button onClick={() => handleDelete(trade.id || trade._id)} className="text-brand-red hover:text-white">
                     DEL
                   </button>
                 </td>
