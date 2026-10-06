@@ -1,9 +1,9 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { supabase } from '../lib/supabase';
 import { AuthContext } from '../context/AuthContext';
 import { X, UploadCloud } from 'lucide-react';
 
-const TradeFormModal = ({ isOpen, onClose, onTradeAdded }) => {
+const TradeFormModal = ({ isOpen, onClose, onTradeAdded, editingTrade }) => {
   const { user } = useContext(AuthContext);
   const [amount, setAmount] = useState('');
   const [type, setType] = useState('profit');
@@ -15,6 +15,30 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded }) => {
   const [image, setImage] = useState(null);
   const [fileObject, setFileObject] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (editingTrade) {
+      setAmount(Math.abs(Number(editingTrade.amount)).toString());
+      setType(editingTrade.trade_type?.toLowerCase() || editingTrade.type?.toLowerCase() || 'profit');
+      setDate(editingTrade.date || new Date().toISOString().split('T')[0]);
+      setJournal(editingTrade.journal || '');
+      setPair(editingTrade.pair || '');
+      setEntryTime(editingTrade.entry_time || editingTrade.entryTime || '');
+      setExitTime(editingTrade.exit_time || editingTrade.exitTime || '');
+      setImage(editingTrade.image_url || editingTrade.imageUrl || null);
+      setFileObject(null);
+    } else {
+      setAmount('');
+      setType('profit');
+      setDate(new Date().toISOString().split('T')[0]);
+      setJournal('');
+      setPair('');
+      setEntryTime('');
+      setExitTime('');
+      setImage(null);
+      setFileObject(null);
+    }
+  }, [editingTrade, isOpen]);
 
   if (!isOpen) return null;
 
@@ -29,7 +53,7 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      let imageUrl = null;
+      let imageUrl = editingTrade ? (editingTrade.image_url || editingTrade.imageUrl) : null;
 
       if (fileObject) {
         const fileName = `${Date.now()}-${fileObject.name}`;
@@ -50,7 +74,7 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded }) => {
         user_id: user.id,
         trade_type: type.toUpperCase(),
         pair: pair || null,
-        amount: parseFloat(amount),
+        amount: parseFloat(amount) * (type === 'loss' ? -1 : 1), // Optional depending on how amount is stored
         entry_time: entryTime || null,
         exit_time: exitTime || null,
         date: date,
@@ -58,8 +82,16 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded }) => {
         image_url: imageUrl
       };
 
-      const { error } = await supabase.from('trades').insert([tradeData]);
-      if (error) throw error;
+      // Since previous code didn't do amount sign conversion here, I'll stick to original logic:
+      tradeData.amount = parseFloat(amount);
+
+      if (editingTrade) {
+        const { error } = await supabase.from('trades').update(tradeData).eq('id', editingTrade.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('trades').insert([tradeData]);
+        if (error) throw error;
+      }
 
       setAmount('');
       setJournal('');
@@ -71,7 +103,7 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded }) => {
       onTradeAdded();
       onClose();
     } catch (err) {
-      console.error('Failed to add trade', err);
+      console.error('Failed to save trade', err);
       alert('Upload failed: ' + err.message);
     } finally {
       setLoading(false);
@@ -88,7 +120,9 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded }) => {
           <X size={24} />
         </button>
         
-        <h2 className="text-3xl font-black mb-6 uppercase border-b-4 border-black pb-4 text-black">Log New Trade</h2>
+        <h2 className="text-3xl font-black mb-6 uppercase border-b-4 border-black pb-4 text-black">
+          {editingTrade ? 'EDIT TRADE' : 'LOG NEW TRADE'}
+        </h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex gap-4">
@@ -194,7 +228,7 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded }) => {
           </div>
 
           <button type="submit" disabled={loading} className="w-full bg-[#FFE600] text-black border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-2 active:translate-y-2 active:shadow-none font-black text-2xl py-4 mt-8 transition-all uppercase">
-            {loading ? 'PROCESSING...' : 'SUBMIT TRADE'}
+            {loading ? 'PROCESSING...' : (editingTrade ? 'UPDATE TRADE' : 'SUBMIT TRADE')}
           </button>
         </form>
       </div>

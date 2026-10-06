@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateDDMMYYYY } from '../utils/formatters';
 
 export default function PnLCalendar({ trades, selectedDate, onSelectMonth, currency = 'USD', rate = 1 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -93,9 +94,12 @@ export default function PnLCalendar({ trades, selectedDate, onSelectMonth, curre
           const displayPnl = hasTrade ? pnl * (currency === 'INR' ? rate : 1) : 0;
           const symbol = currency === 'INR' ? '₹' : '$';
 
+          const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+
           return (
             <div
               key={dayNum}
+              title={formatDateDDMMYYYY(dateString)}
               className={`min-h-[55px] p-1 border-2 border-black flex flex-col justify-between transition-all ${
                 hasTrade
                   ? pnl > 0

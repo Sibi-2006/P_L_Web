@@ -5,6 +5,11 @@ import { ThemeProvider } from './context/ThemeContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import AllTradesPage from './pages/AllTradesPage';
+import TradeDetailsPage from './components/TradeDetailsPage';
+import NotesPage from './pages/NotesPage';
+import NoteDetailsPage from './pages/NoteDetailsPage';
+import MainLayout from './components/MainLayout';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = React.useContext(AuthContext);
@@ -18,20 +23,22 @@ const App = () => {
     <ThemeProvider>
       <AuthProvider>
         <Router>
-          <div className="min-h-screen p-4 md:p-8 dark:bg-[#0F0F11]">
-            <Routes>
-              <Route path="/login"    element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </div>
+          <Routes>
+            <Route path="/login"    element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/viewalltrades" element={<AllTradesPage />} />
+              <Route path="/trade/:id" element={<TradeDetailsPage />} />
+              <Route path="/notes" element={(
+                <AuthContext.Consumer>
+                  {({ user }) => <NotesPage user={user} />}
+                </AuthContext.Consumer>
+              )} />
+              <Route path="/notes/:id" element={<NoteDetailsPage />} />
+            </Route>
+          </Routes>
         </Router>
       </AuthProvider>
     </ThemeProvider>
