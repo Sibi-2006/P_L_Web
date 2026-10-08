@@ -11,6 +11,8 @@ function NotesPage({ user }) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Psychology');
   const [content, setContent] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,24 +30,45 @@ function NotesPage({ user }) {
 
   const handleSaveNote = async () => {
     if (!title || !content) return alert('Please enter both title and content');
+    setUploading(true);
+    
+    let imageUrl = editingNote?.image_url || null;
+
+    if (imageFile) {
+      const fileName = `note-${Date.now()}-${imageFile.name}`;
+      const { data, error: uploadError } = await supabase.storage
+        .from('trade-screenshots') // Fallback to existing public bucket if needed
+        .upload(fileName, imageFile);
+
+      if (!uploadError) {
+        const { data: publicData } = supabase.storage
+          .from('trade-screenshots')
+          .getPublicUrl(fileName);
+        imageUrl = publicData.publicUrl;
+      } else {
+        alert('Failed to upload image. Make sure the bucket exists and is public.');
+      }
+    }
 
     if (editingNote) {
       // Update existing note
       await supabase
         .from('notes')
-        .update({ title, category, content, updated_at: new Date().toISOString() })
+        .update({ title, category, content, image_url: imageUrl, updated_at: new Date().toISOString() })
         .eq('id', editingNote.id);
     } else {
       // Create new note
       await supabase
         .from('notes')
-        .insert([{ user_id: user.id, title, category, content }]);
+        .insert([{ user_id: user.id, title, category, content, image_url: imageUrl }]);
     }
 
+    setUploading(false);
     setIsModalOpen(false);
     setEditingNote(null);
     setTitle('');
     setContent('');
+    setImageFile(null);
     fetchNotes();
   };
 
@@ -63,6 +86,7 @@ function NotesPage({ user }) {
     setTitle(note.title);
     setCategory(note.category);
     setContent(note.content);
+    setImageFile(null); // Reset image file input when editing
     setIsModalOpen(true);
   };
 
@@ -75,6 +99,7 @@ function NotesPage({ user }) {
             setEditingNote(null);
             setTitle('');
             setContent('');
+            setImageFile(null);
             setIsModalOpen(true);
           }}
           className="border-3 border-black bg-cyan-300 text-black px-4 py-2 font-black text-sm uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
@@ -106,7 +131,9 @@ function NotesPage({ user }) {
             </div>
 
             <div className="mt-4 pt-3 border-t-2 border-black dark:border-white flex justify-between items-center">
-              <span className="text-xs font-black uppercase text-blue-500 underline">READ MORE →</span>
+              <span className="text-xs font-black uppercase text-blue-500 underline flex items-center gap-1">
+                READ MORE → {note.image_url && '🖼️'}
+              </span>
               <div className="flex gap-2">
                 <button
                   onClick={(e) => openEditModal(note, e)}
@@ -153,10 +180,29 @@ function NotesPage({ user }) {
             <textarea
               placeholder="Write your execution or mindset notes here..."
               value={content}
-              rows={6}
+              rows={5}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full border-3 border-black p-2 font-bold mb-4"
+              className="w-full border-3 border-black p-2 font-bold mb-3"
             />
+            
+            {/* Optional Image Input */}
+            <div className="mb-4">
+              <label className="text-xs font-black uppercase text-gray-700 block mb-1">
+                📷 OPTIONAL IMAGE / CHART SCREENSHOT
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files[0])}
+                className="w-full border-2 border-black p-1 text-xs font-bold bg-gray-100"
+              />
+              {editingNote?.image_url && !imageFile && (
+                <p className="text-[10px] font-bold text-blue-600 mt-1">
+                  Note already has an image attached. Uploading a new one will replace it.
+                </p>
+              )}
+            </div>
+
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -166,9 +212,10 @@ function NotesPage({ user }) {
               </button>
               <button
                 onClick={handleSaveNote}
-                className="bg-[#00FF66] border-2 border-black px-4 py-2 font-black uppercase text-xs"
+                disabled={uploading}
+                className="bg-[#00FF66] border-2 border-black px-4 py-2 font-black uppercase text-xs disabled:opacity-50"
               >
-                SAVE NOTE
+                {uploading ? 'SAVING...' : 'SAVE NOTE'}
               </button>
             </div>
           </div>
