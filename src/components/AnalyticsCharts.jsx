@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
+import TradingCandleChart from './TradingCandleChart';
 
 const AnalyticsCharts = ({ trades }) => {
   const chartData = useMemo(() => {
@@ -51,26 +51,8 @@ const AnalyticsCharts = ({ trades }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-      <div className="lg:col-span-2 brutalist-card p-6 bg-white">
-        <h2 className="text-xl font-black uppercase mb-4 border-b-4 border-black pb-2">Equity Curve</h2>
-        <div className="h-64 w-full">
-          <ResponsiveContainer>
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#000" vertical={false} />
-              <XAxis dataKey="date" stroke="#000" tick={{fontFamily: 'Space Mono', fontWeight: 'bold'}} />
-              <YAxis stroke="#000" tick={{fontFamily: 'Space Mono', fontWeight: 'bold'}} />
-              <Tooltip content={<CustomTooltip />} />
-              <Line 
-                type="stepAfter" 
-                dataKey="cumulative" 
-                stroke="#000" 
-                strokeWidth={4} 
-                dot={{ stroke: '#000', strokeWidth: 2, r: 4, fill: '#FFE600' }} 
-                activeDot={{ r: 8 }} 
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="lg:col-span-2">
+        <TradingCandleChart trades={trades} />
       </div>
       
       <div className="lg:col-span-1 brutalist-card p-6 bg-white">
