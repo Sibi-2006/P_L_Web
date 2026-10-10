@@ -12,9 +12,33 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded, editingTrade }) => {
   const [pair, setPair] = useState('');
   const [entryTime, setEntryTime] = useState('');
   const [exitTime, setExitTime] = useState('');
+  
+  // Advanced tracking fields
+  const [tradeDirection, setTradeDirection] = useState('BUY');
+  const [entryPrice, setEntryPrice] = useState('');
+  const [exitPrice, setExitPrice] = useState('');
+  const [stopLoss, setStopLoss] = useState('');
+  const [takeProfit, setTakeProfit] = useState('');
+  const [lotSize, setLotSize] = useState('');
+  const [moodBefore, setMoodBefore] = useState('');
+  const [moodAfter, setMoodAfter] = useState('');
+
   const [image, setImage] = useState(null);
   const [fileObject, setFileObject] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Compute R:R dynamically
+  const calculateRR = () => {
+    if (!entryPrice || !stopLoss || !takeProfit) return null;
+    const ep = parseFloat(entryPrice);
+    const sl = parseFloat(stopLoss);
+    const tp = parseFloat(takeProfit);
+    if (ep === sl) return null;
+    const risk = Math.abs(ep - sl);
+    const reward = Math.abs(tp - ep);
+    return (reward / risk).toFixed(2);
+  };
+  const rrRatio = calculateRR();
 
   useEffect(() => {
     if (editingTrade) {
@@ -25,6 +49,17 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded, editingTrade }) => {
       setPair(editingTrade.pair || '');
       setEntryTime(editingTrade.entry_time || editingTrade.entryTime || '');
       setExitTime(editingTrade.exit_time || editingTrade.exitTime || '');
+      
+      // Load advanced fields
+      setTradeDirection(editingTrade.trade_direction || 'BUY');
+      setEntryPrice(editingTrade.entry_price || '');
+      setExitPrice(editingTrade.exit_price || '');
+      setStopLoss(editingTrade.stop_loss || '');
+      setTakeProfit(editingTrade.take_profit || '');
+      setLotSize(editingTrade.lot_size || '');
+      setMoodBefore(editingTrade.mood_before || '');
+      setMoodAfter(editingTrade.mood_after || '');
+
       setImage(editingTrade.image_url || editingTrade.imageUrl || null);
       setFileObject(null);
     } else {
@@ -35,6 +70,16 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded, editingTrade }) => {
       setPair('');
       setEntryTime('');
       setExitTime('');
+
+      setTradeDirection('BUY');
+      setEntryPrice('');
+      setExitPrice('');
+      setStopLoss('');
+      setTakeProfit('');
+      setLotSize('');
+      setMoodBefore('');
+      setMoodAfter('');
+
       setImage(null);
       setFileObject(null);
     }
@@ -79,7 +124,15 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded, editingTrade }) => {
         exit_time: exitTime || null,
         date: date,
         journal: journal || null,
-        image_url: imageUrl
+        image_url: imageUrl,
+        trade_direction: tradeDirection,
+        entry_price: entryPrice ? parseFloat(entryPrice) : null,
+        exit_price: exitPrice ? parseFloat(exitPrice) : null,
+        stop_loss: stopLoss ? parseFloat(stopLoss) : null,
+        take_profit: takeProfit ? parseFloat(takeProfit) : null,
+        lot_size: lotSize ? parseFloat(lotSize) : null,
+        mood_before: moodBefore || null,
+        mood_after: moodAfter || null
       };
 
       // Since previous code didn't do amount sign conversion here, I'll stick to original logic:
@@ -98,6 +151,14 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded, editingTrade }) => {
       setPair('');
       setEntryTime('');
       setExitTime('');
+      setTradeDirection('BUY');
+      setEntryPrice('');
+      setExitPrice('');
+      setStopLoss('');
+      setTakeProfit('');
+      setLotSize('');
+      setMoodBefore('');
+      setMoodAfter('');
       setImage(null);
       setFileObject(null);
       onTradeAdded();
@@ -168,6 +229,80 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded, editingTrade }) => {
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
+              <label className="block text-xs font-black uppercase mb-1 text-black">Trade Direction</label>
+              <select
+                value={tradeDirection}
+                onChange={(e) => setTradeDirection(e.target.value)}
+                className="w-full border-4 border-black p-2 font-mono font-bold uppercase focus:outline-none text-black bg-white"
+              >
+                <option value="BUY">BUY</option>
+                <option value="SELL">SELL</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase mb-1 text-black">Lot Size</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="e.g. 1.5"
+                value={lotSize}
+                onChange={(e) => setLotSize(e.target.value)}
+                className="w-full border-4 border-black p-2 font-mono font-bold focus:outline-none text-black bg-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-black uppercase mb-1 text-black">Entry Price</label>
+              <input
+                type="number"
+                step="any"
+                value={entryPrice}
+                onChange={(e) => setEntryPrice(e.target.value)}
+                className="w-full border-4 border-black p-2 font-mono font-bold focus:outline-none bg-white text-black"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase mb-1 text-black">Exit Price</label>
+              <input
+                type="number"
+                step="any"
+                value={exitPrice}
+                onChange={(e) => setExitPrice(e.target.value)}
+                className="w-full border-4 border-black p-2 font-mono font-bold focus:outline-none bg-white text-black"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-black uppercase mb-1 text-black">Stop Loss</label>
+              <input
+                type="number"
+                step="any"
+                value={stopLoss}
+                onChange={(e) => setStopLoss(e.target.value)}
+                className="w-full border-4 border-black p-2 font-mono font-bold focus:outline-none bg-white text-black"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase mb-1 text-black flex justify-between items-center">
+                Take Profit
+                {rrRatio && <span className="bg-black text-[#00FF66] px-1 py-0.5 ml-2 border border-black shadow-[2px_2px_0px_0px_rgba(0,255,102,1)]">R:R 1:{rrRatio}</span>}
+              </label>
+              <input
+                type="number"
+                step="any"
+                value={takeProfit}
+                onChange={(e) => setTakeProfit(e.target.value)}
+                className="w-full border-4 border-black p-2 font-mono font-bold focus:outline-none bg-white text-black"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
               <label className="block text-xs font-black uppercase mb-1 text-black">Entry Time ⏰</label>
               <input
                 type="time"
@@ -194,8 +329,39 @@ const TradeFormModal = ({ isOpen, onClose, onTradeAdded, editingTrade }) => {
             <input type="date" className="w-full border-4 border-black p-2 font-mono font-bold focus:outline-none text-black bg-white text-xl" value={date} onChange={(e) => setDate(e.target.value)} required />
           </div>
 
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-black uppercase mb-1 text-black">Mood Before Trade</label>
+              <select
+                value={moodBefore}
+                onChange={(e) => setMoodBefore(e.target.value)}
+                className="w-full border-4 border-black p-2 font-mono font-bold uppercase focus:outline-none text-black bg-white"
+              >
+                <option value="">Select...</option>
+                <option value="Calm 🧘">Calm 🧘</option>
+                <option value="Anxious 😰">Anxious 😰</option>
+                <option value="FOMO 🥺">FOMO 🥺</option>
+                <option value="Confident 😎">Confident 😎</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase mb-1 text-black">Mood After Trade</label>
+              <select
+                value={moodAfter}
+                onChange={(e) => setMoodAfter(e.target.value)}
+                className="w-full border-4 border-black p-2 font-mono font-bold uppercase focus:outline-none text-black bg-white"
+              >
+                <option value="">Select...</option>
+                <option value="Relieved 😮‍💨">Relieved 😮‍💨</option>
+                <option value="Frustrated 🤬">Frustrated 🤬</option>
+                <option value="Excited 🤩">Excited 🤩</option>
+                <option value="Regretful 😔">Regretful 😔</option>
+              </select>
+            </div>
+          </div>
+
           <div>
-            <label className="block font-black mb-2 text-lg uppercase text-black">Journal Notes</label>
+            <label className="block font-black mb-2 text-lg uppercase text-black">Journal Notes & Tags</label>
             <textarea 
               className="w-full border-4 border-black p-2 font-mono font-bold focus:outline-none text-black bg-white min-h-[120px] resize-y" 
               value={journal} 

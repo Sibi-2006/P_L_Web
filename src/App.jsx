@@ -10,6 +10,8 @@ import TradeDetailsPage from './components/TradeDetailsPage';
 import NotesPage from './pages/NotesPage';
 import NoteDetailsPage from './pages/NoteDetailsPage';
 import MainLayout from './components/MainLayout';
+import WeeklyReviewPage from './pages/WeeklyReviewPage';
+import ReportPage from './pages/ReportPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = React.useContext(AuthContext);
@@ -37,6 +39,8 @@ const App = () => {
                 </AuthContext.Consumer>
               )} />
               <Route path="/notes/:id" element={<NoteDetailsPage />} />
+              <Route path="/weekly-review" element={<WeeklyReviewPage />} />
+              <Route path="/report" element={<ReportPage />} />
             </Route>
           </Routes>
         </Router>

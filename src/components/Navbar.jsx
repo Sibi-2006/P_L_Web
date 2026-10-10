@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Sun, Moon, LogOut, BookOpen, LayoutDashboard, Tv } from 'lucide-react';
+import { Plus, Sun, Moon, LogOut, BookOpen, LayoutDashboard, Tv, Calendar, Share2 } from 'lucide-react';
 
 export default function Navbar({ onOpenNewTradeModal, currency, onToggleCurrency, isDark, onToggleTheme, onLogout }) {
   return (
@@ -18,6 +18,12 @@ export default function Navbar({ onOpenNewTradeModal, currency, onToggleCurrency
           </Link>
           <Link className="border-2 border-black bg-cyan-300 px-3 py-1.5 font-black text-xs uppercase text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all flex items-center gap-1" to="/notes">
             <BookOpen className="w-4 h-4"/> NOTES
+          </Link>
+          <Link className="border-2 border-black bg-pink-400 px-3 py-1.5 font-black text-xs uppercase text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all flex items-center gap-1" to="/weekly-review">
+            <Calendar className="w-4 h-4"/> REVIEW
+          </Link>
+          <Link className="border-2 border-black bg-emerald-300 px-3 py-1.5 font-black text-xs uppercase text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all flex items-center gap-1" to="/report">
+            <Share2 className="w-4 h-4"/> REPORT
           </Link>
         </nav>
       </div>
